@@ -1,0 +1,157 @@
+openapi: 3.0.3
+
+info:
+  title: AI-compact Project API
+  description: API для работы с ИИ-сервисом пересказа текста
+  version: 1.0.0
+
+servers: 
+  - url: https://nsu.techdoc.iceicebaby.dev/api/v1
+
+paths:
+  /summaries:
+    post:
+      summary: Создать краткий пересказ текста
+      description: Создаёт краткий пересказ переданного текста с помощью ИИ.
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  description: Исходный текст, который необходимо сократить
+                  minLength: 1
+                  example: Ну, князь, Генуя и Лукка - не более как поместья фамилии Бонапарте. Нет, я вам вперед говорю, если вы мне не скажете, что у нас война, если вы еще позволите себе защищать все гадости, все ужасы этого Антихриста (право, я верю, что он Антихрист), то я с вами более не знаком, вы не друг мой, вы не мой верный раб, как вы хотите. Ну, здравствуйте, здравствуйте. Je vois que je vous fais peur [я вижу, что я пугаю вас], садитесь и рассказывайте
+
+      responses:
+        '200':
+          description: Краткий пересказ успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryResult'
+        '400':
+          description: Некорректный запрос - текст пустой или отсутствует
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: INVALID_TEXT
+                  message:
+                    type: string
+                    example: Текст не должен быть пустым
+
+        '500':
+          description: Внутренняя ошибка сервиса - ИИ-модель временно недоступна
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: MODEL_UNAVAILABLE
+                  message:
+                    type: string
+                    example: Не удалось создать краткий пересказ. Попробуйте позже.
+  
+  /summaries/{id}:
+    get:
+      summary: Получить пересказ по ID
+      description: Возвращает ранее созданный краткий пересказ.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Уникальный идентификатор ранее созданного пересказа
+          schema:
+            type: string
+            minLength: 1
+          example: "12345"
+      responses:
+        '200':
+          description: Пересказ найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryResult'
+        '404':
+          description: Пересказ с указанным ID не найден
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: SUMMARY_NOT_FOUND
+                  message:
+                    type: string
+                    example: Пересказ с идентификатором 12345 не найден.
+        '500':
+          description: Внутренняя ошибка сервиса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: INTERNAL_ERROR
+                  message:
+                    type: string
+                    example: Не удалось получить пересказ. Попробуйте позже.
+
+  /summaries/history:
+    get:
+      summary: Получить историю пересказов
+      description: Возвращает список ранее созданных пересказов пользователя.
+      responses:
+        '200':
+          description: История успешно получена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summaries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SummaryResult'
+        '500':
+          description: Не удалось получить историю пересказов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: HISTORY_LOAD_ERROR
+                  message:
+                    type: string
+                    example: Не удалось загрузить историю пересказов. Попробуйте позже.
+
+components:
+  schemas:
+    SummaryResult:
+      type: object
+      properties:
+        summary:
+          type: string
+          example: Анна Шерер эмоционально заявляет князю Василию о неизбежности войны, называет Наполеона Антихристом и требует прекратить его защиту, приглашая к беседе.
+        resultId:
+          type: string
+          example: "12345"
+        modelVersion:
+          type: string
+          example: "Qwen 3.5B"
